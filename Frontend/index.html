@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResuMatch AI — Intelligent AI Resume Analyzer & Job Matcher</title>
+    <meta name="description" content="AI-Powered Resume Analyzer that compares your PDF resume against job descriptions, identifies skill gaps, calculates match scores, and provides actionable recommendations.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-inner">
+            <a href="#" class="brand-area" aria-label="ResuMatch AI Homepage">
+                <div class="brand-logo-icon">
+                    <i data-lucide="sparkles"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>ResuMatch AI <span class="brand-badge">PRO v2.0</span></h1>
+                    <p>Intelligent ATS & Job Fit Evaluator</p>
+                </div>
+            </a>
+
+            <div class="header-actions">
+                <div class="status-pill" id="backend-status-pill" title="FastAPI Backend Health">
+                    <span class="status-indicator"></span>
+                    <span id="backend-status-text">Checking Backend...</span>
+                </div>
+                <button class="btn-header-ghost" id="btn-ping-backend" onclick="checkBackendHealth(true)" title="Check API connectivity">
+                    <i data-lucide="activity" style="width: 15px; height: 15px;"></i>
+                    <span>Ping API</span>
+                </button>
+                <button class="btn-header-ghost" id="btn-demo-mode" onclick="loadSampleAnalysis()" title="Load demo resume and job description">
+                    <i data-lucide="flask-conical" style="width: 15px; height: 15px;"></i>
+                    <span>Try Demo</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Intro -->
+    <section class="hero-section">
+        <div class="hero-pill">
+            <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+            <span>Powered by Groq LLM & Deep Semantic Analysis</span>
+        </div>
+        <h2 class="hero-title">Optimize Your Resume for <span class="gradient-span">Maximum Job Fit</span></h2>
+        <p class="hero-desc">Upload your PDF resume, paste the target job description, and get instant deep-dive skill matching, gap diagnostics, and hiring manager insights.</p>
+    </section>
+
+    <!-- Main Workspace (2-Column Grid) -->
+    <main class="app-workspace">
+
+        <!-- Left Column: Input Form -->
+        <section class="input-panel" aria-label="Input Configuration">
+            
+            <!-- Step 1: Upload Resume Card -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <span class="card-step-badge">1</span>
+                        <div>
+                            <h3 class="card-title">Upload Your Resume</h3>
+                            <p class="card-subtitle">Select or drag & drop your PDF resume</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drag & Drop Dropzone -->
+                <div class="upload-dropzone" id="dropzone" onclick="triggerFileInput()">
+                    <input type="file" id="resume-file-input" accept=".pdf" style="display: none;" onchange="handleFileSelected(event)">
+                    
+                    <div class="upload-icon-wrap">
+                        <i data-lucide="upload-cloud" style="width: 28px; height: 28px;"></i>
+                    </div>
+                    <p class="upload-prompt-text">Click to upload or drag & drop</p>
+                    <p class="upload-prompt-sub">Supports <span>PDF documents</span> up to 10MB</p>
+
+                    <div class="upload-meta-pills">
+                        <span class="meta-chip">PDF ONLY</span>
+                        <span class="meta-chip">AUTOMATIC ATS PARSER</span>
+                        <span class="meta-chip">SECURE & PRIVATE</span>
+                    </div>
+                </div>
+
+                <!-- Selected File Display -->
+                <div class="file-selected-box" id="file-selected-box">
+                    <div class="file-info-group">
+                        <span class="file-type-badge">PDF</span>
+                        <div>
+                            <p class="file-name-text" id="selected-file-name">my_resume.pdf</p>
+                            <p class="file-size-text" id="selected-file-size">1.2 MB</p>
+                        </div>
+                    </div>
+                    <button class="btn-remove-file" onclick="removeSelectedFile()" title="Remove file" aria-label="Remove uploaded file">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Target Job Description Card -->
+            <div class="glass-card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <span class="card-step-badge">2</span>
+                        <div>
+                            <h3 class="card-title">Target Job Description</h3>
+                            <p class="card-subtitle">Paste requirements or choose a preset</p>
+                        </div>
+                    </div>
+                    <button class="btn-text-action" onclick="clearJobDescription()" title="Clear textarea">
+                        <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+
+                <!-- Preset Quick Buttons -->
+                <div class="preset-pills-wrap" id="preset-container">
+                    <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-right: 4px;">PRESETS:</span>
+                    <button class="preset-chip" onclick="applyPreset('frontend')">
+                        <i data-lucide="code-2" style="width: 13px; height: 13px;"></i>
+                        <span>Frontend Dev</span>
+                    </button>
+                    <button class="preset-chip" onclick="applyPreset('fullstack')">
+                        <i data-lucide="layers" style="width: 13px; height: 13px;"></i>
+                        <span>Fullstack Engineer</span>
+                    </button>
+                    <button class="preset-chip" onclick="applyPreset('ai_ml')">
+                        <i data-lucide="brain" style="width: 13px; height: 13px;"></i>
+                        <span>AI / ML Engineer</span>
+                    </button>
+                    <button class="preset-chip" onclick="applyPreset('data')">
+                        <i data-lucide="database" style="width: 13px; height: 13px;"></i>
+                        <span>Data Scientist</span>
+                    </button>
+                    <button class="preset-chip" onclick="applyPreset('devops')">
+                        <i data-lucide="server" style="width: 13px; height: 13px;"></i>
+                        <span>DevOps & Cloud</span>
+                    </button>
+                </div>
+
+                <!-- Textarea -->
+                <div class="textarea-container">
+                    <textarea 
+                        id="job-description-input" 
+                        class="job-textarea" 
+                        placeholder="Paste the target job description or requirements here (e.g. key qualifications, required tech stack, responsibilities)..."
+                        oninput="updateJobDescCharCount()"
+                    ></textarea>
+                </div>
+
+                <div class="textarea-footer">
+                    <span id="job-char-count">0 characters | 0 words</span>
+                    <button class="btn-text-action" onclick="pasteFromClipboard()">
+                        <i data-lucide="clipboard-paste" style="width: 13px; height: 13px;"></i>
+                        <span>Paste from Clipboard</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <button class="btn-primary-glow" id="btn-analyze" onclick="startResumeAnalysis()">
+                    <i data-lucide="wand-2" style="width: 20px; height: 20px;"></i>
+                    <span id="btn-analyze-text">Analyze Resume Match</span>
+                </button>
+                
+                <div class="action-sub-buttons">
+                    <button class="btn-secondary-ghost" onclick="loadSampleAnalysis()">
+                        <i data-lucide="sparkle" style="width: 14px; height: 14px;"></i>
+                        <span>Quick Demo Sample</span>
+                    </button>
+                    <button class="btn-secondary-ghost" onclick="resetForm()">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <span>Reset All Fields</span>
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: AI Analysis Intelligence Dashboard -->
+        <section class="results-panel" aria-label="AI Analysis Results">
+
+            <!-- State 1: Empty Placeholder -->
+            <div class="results-empty-state" id="results-empty-state">
+                <div class="empty-icon-wrap">
+                    <i data-lucide="radar" style="width: 32px; height: 32px;"></i>
+                </div>
+                <h3 class="empty-title">Ready for AI Evaluation</h3>
+                <p class="empty-desc">Upload your PDF resume on the left and enter the job description to reveal your match score, key competencies, and improvement blueprint.</p>
+            </div>
+
+            <!-- State 2: Active Loading Skeleton -->
+            <div class="analysis-loading-state" id="analysis-loading-state">
+                <div class="ai-pulse-orb">
+                    <i data-lucide="sparkles" style="width: 36px; height: 36px; color: #ffffff;"></i>
+                </div>
+                <h3 class="loading-progress-title">Analyzing Resume with AI</h3>
+                <p class="loading-progress-status" id="loading-step-text">Parsing PDF document & extracting text...</p>
+                <div class="loading-steps-pills">
+                    <span class="loading-step-pill active" id="step-pill-1">1. PDF Parse</span>
+                    <span class="loading-step-pill" id="step-pill-2">2. Semantic Match</span>
+                    <span class="loading-step-pill" id="step-pill-3">3. Gap Analysis</span>
+                    <span class="loading-step-pill" id="step-pill-4">4. Final Scoring</span>
+                </div>
+            </div>
+
+            <!-- State 3: Active Results Dashboard -->
+            <div class="results-active-container" id="results-active-container">
+
+                <!-- 1. Hero Score Card -->
+                <div class="glass-card score-hero-card">
+                    <div class="score-content-grid">
+                        
+                        <!-- Circular Progress Gauge -->
+                        <div class="score-gauge-wrap">
+                            <svg class="score-gauge-svg" viewBox="0 0 120 120">
+                                <circle class="gauge-bg-circle" cx="60" cy="60" r="52"></circle>
+                                <circle class="gauge-progress-circle" id="gauge-progress-circle" cx="60" cy="60" r="52"></circle>
+                            </svg>
+                            <div class="score-center-label">
+                                <span class="score-number-display" id="result-score-num">0</span>
+                                <span class="score-max-sub">/ 100</span>
+                            </div>
+                        </div>
+
+                        <!-- Score Verdict Text -->
+                        <div class="score-meta-area">
+                            <span class="score-badge-pill" id="result-verdict-badge">
+                                <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+                                <span id="result-verdict-text">Strong Match</span>
+                            </span>
+                            <h3 class="score-headline" id="result-headline">High Compatibility Profile</h3>
+                            <p class="score-summary-p" id="result-summary-text">Your profile aligns closely with the core requirements of this role.</p>
+                        </div>
+                    </div>
+
+                    <!-- Metric Breakdown Strip -->
+                    <div class="score-metrics-strip">
+                        <div class="metric-box">
+                            <div class="metric-num" id="metric-matched-count" style="color: var(--success-light);">0</div>
+                            <div class="metric-label">MATCHED SKILLS</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-num" id="metric-missing-count" style="color: var(--danger-light);">0</div>
+                            <div class="metric-label">SKILL GAPS</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-num" id="metric-suggestions-count" style="color: #c7d2fe;">0</div>
+                            <div class="metric-label">RECOMMENDATIONS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Matched Skills Card -->
+                <div class="glass-card skills-section-card">
+                    <div class="section-title-with-count">
+                        <div class="card-header-left">
+                            <i data-lucide="badge-check" style="width: 20px; height: 20px; color: var(--success-light);"></i>
+                            <h3 class="card-title">Matched Competencies</h3>
+                        </div>
+                        <span class="meta-chip" id="matched-count-pill">0 Skills</span>
+                    </div>
+                    <div class="skills-badge-list" id="matched-skills-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- 3. Missing Skills / Skill Gaps Card -->
+                <div class="glass-card skills-section-card">
+                    <div class="section-title-with-count">
+                        <div class="card-header-left">
+                            <i data-lucide="alert-triangle" style="width: 20px; height: 20px; color: var(--danger-light);"></i>
+                            <h3 class="card-title">Missing / Weak Qualifications</h3>
+                        </div>
+                        <span class="meta-chip" id="missing-count-pill">0 Skills</span>
+                    </div>
+                    <div class="skills-badge-list" id="missing-skills-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- 4. Strategic AI Suggestions Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <i data-lucide="lightbulb" style="width: 20px; height: 20px; color: #fbbf24;"></i>
+                            <h3 class="card-title">Actionable AI Improvement Steps</h3>
+                        </div>
+                        <button class="btn-text-action" onclick="copyAllSuggestions()" title="Copy all suggestions">
+                            <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                            <span>Copy All</span>
+                        </button>
+                    </div>
+                    <div class="suggestions-list" id="suggestions-list-container">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- 5. Collapsible Extracted Resume Text -->
+                <div class="glass-card">
+                    <div class="collapsible-header" onclick="toggleExtractedTextAccordion()">
+                        <div class="card-header-left">
+                            <i data-lucide="file-text" style="width: 18px; height: 18px; color: #a5b4fc;"></i>
+                            <h4 class="card-title" style="font-size: 15px;">Extracted Resume Text (ATS View)</h4>
+                        </div>
+                        <i data-lucide="chevron-down" id="accordion-icon" style="width: 18px; height: 18px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+                    </div>
+                    <div class="collapsible-body" id="extracted-text-body">
+                        <div class="extracted-text-box" id="extracted-resume-text">
+                            No extracted text available.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Export / Action Toolbar -->
+                <div class="glass-card" style="padding: 16px 20px;">
+                    <div class="export-toolbar">
+                        <button class="btn-export" onclick="exportAnalysisReport('markdown')">
+                            <i data-lucide="copy-check" style="width: 15px; height: 15px;"></i>
+                            <span>Copy Markdown</span>
+                        </button>
+                        <button class="btn-export" onclick="exportAnalysisReport('json')">
+                            <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+                            <span>Download JSON</span>
+                        </button>
+                        <button class="btn-export" onclick="window.print()">
+                            <i data-lucide="printer" style="width: 15px; height: 15px;"></i>
+                            <span>Print / Save PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>ResuMatch AI — Powered by <span>FastAPI</span>, <span>Groq AI</span>, and <span>Stitch Lumina Design System</span>.</p>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Application Script -->
+    <script src="script.js"></script>
+    <script>
+        // Initialize Lucide icons on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>
